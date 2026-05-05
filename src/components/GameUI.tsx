@@ -67,9 +67,8 @@ export function GameUI({ socket, gameState }: GameUIProps) {
          
          <div className="bg-red-900/40 border border-red-500/50 rounded-3xl p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20"></div>
-            <h2 className="text-sm font-mono uppercase tracking-widest text-red-300 mb-2">The കഴുതകളി Is</h2>
-            <div className="text-5xl font-black text-rose-500 mb-4 tracking-tighter uppercase">{donkey?.name || 'Unknown'}</div>
-            <p className="text-rose-200/60 italic font-serif">Hee-haw!</p>
+            <div className="text-9xl mb-6 flex justify-center drop-shadow-2xl">🐴</div>
+            <div className="text-5xl font-black text-rose-500 mb-4 tracking-tighter uppercase">{donkey?.name || 'Unknown'} കഴുത</div>
          </div>
 
          <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-6 mt-8">
@@ -126,11 +125,30 @@ export function GameUI({ socket, gameState }: GameUIProps) {
       )}
 
       {/* Opponents & Table area */}
-      <div className="flex-1 w-full relative perspective-[1000px] flex items-center justify-center p-4">
+      <div className="flex-1 w-full relative perspective-[1000px] flex items-center justify-center p-4 min-h-[50vh]">
           
-          <div className="absolute top-4 left-0 w-full flex justify-center items-center px-4 flex-wrap gap-4 z-10">
-                  {(me ? orderedPlayers.slice(1) : orderedPlayers).map((p) => (
-                      <div key={p.id} className="flex flex-col items-center">
+          <div className="absolute inset-0 pointer-events-none z-10">
+                  {(me ? orderedPlayers.slice(1) : orderedPlayers).map((p) => {
+                      const idx = orderedPlayers.findIndex(op => op.id === p.id);
+                      const total = orderedPlayers.length;
+                      const angle = (idx / total) * 2 * Math.PI + Math.PI / 2;
+                      const rx = 35; // % from center x 
+                      const ry = 40; // % from center y
+                      const x = Math.cos(angle) * rx;
+                      const y = Math.sin(angle) * ry;
+                      
+                      return (
+                      <div 
+                          key={p.id} 
+                          className="flex flex-col items-center pointer-events-auto"
+                          style={{
+                              position: 'absolute',
+                              top: `${50 + y}%`,
+                              left: `${50 + x}%`,
+                              transform: 'translate(-50%, -50%)',
+                              zIndex: 20
+                          }}
+                      >
                           <div className={`relative px-4 py-2 rounded-xl border ${p.isTurn ? 'bg-emerald-600/20 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-white/5 border-white/10'} backdrop-blur-sm transition-all text-center min-w-[100px]`}>
                                   {p.isOut && <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center z-20 font-bold uppercase tracking-widest text-xs text-rose-400">OUT</div>}
                               <div className="text-2xl mb-1 drop-shadow-md">{p.avatar || '🦊'}</div>
@@ -161,7 +179,7 @@ export function GameUI({ socket, gameState }: GameUIProps) {
                               {p.isTurn && <div className="absolute -bottom-2 -translate-x-1/2 left-1/2 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center"><div className="w-2 h-2 rounded-full bg-white animate-ping"></div></div>}
                           </div>
                       </div>
-                  ))}
+                  )})}
           </div>
 
           <AnimatePresence>
@@ -187,20 +205,19 @@ export function GameUI({ socket, gameState }: GameUIProps) {
             <div className="absolute inset-0 bg-emerald-900/10 rounded-full blur-2xl pointer-events-none"></div>
             <AnimatePresence>
                 {gameState.tableCards.map((tc, index) => {
-                    const isWinner = gameState.roundWinnerId === tc.playerId;
                     return (
                         <motion.div 
                             layoutId={`card-${tc.card.suit}-${tc.card.rank}`}
                             key={`${tc.playerId}-${tc.card.suit}-${tc.card.rank}`}
                             initial={{ scale: 0, opacity: 0, y: -80, rotate: index * 15 - 30 }}
                             animate={{ 
-                                scale: isWinner ? 1.3 : 1, 
+                                scale: 1, 
                                 opacity: 1,
                                 y: 0,
-                                rotate: isWinner ? 0 : index * 15 - 30,
-                                filter: isWinner ? 'drop-shadow(0 0 20px rgba(16, 185, 129, 0.8))' : 'drop-shadow(0 0 5px rgba(0,0,0,0.5))'
+                                rotate: index * 15 - 30,
+                                filter: 'drop-shadow(0 0 5px rgba(0,0,0,0.5))'
                             }}
-                            style={{ zIndex: isWinner ? 50 : index + 10 }}
+                            style={{ zIndex: index + 10 }}
                             exit={{ 
                                 opacity: 0, 
                                 scale: 0.5, 

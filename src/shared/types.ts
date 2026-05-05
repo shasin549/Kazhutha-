@@ -10,6 +10,7 @@ export interface Player {
   id: string; // socket.id
   name: string;
   avatar: string;
+  isBot?: boolean;
   hand: Card[];
   isTurn: boolean;
   score: number;
@@ -25,6 +26,7 @@ export interface TableCard {
 export interface GameState {
   roomId: string;
   roomName?: string;
+  isEvaluating?: boolean;
   hostId: string;
   maxPlayers: number;
   players: Player[];

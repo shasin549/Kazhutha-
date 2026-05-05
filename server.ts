@@ -153,173 +153,280 @@ async function startServer() {
       if (!room || room.hostId !== socket.id || (room.status !== 'lobby' && room.status !== 'finished')) return;
       if (room.players.length < 2) return;
 
-      const deck = createDeck();
-      shuffle(deck);
-
-      // Distribute equally (some might have 1 more)
-      let p = 0;
-      while (deck.length > 0) {
-        room.players[p].hand.push(deck.pop()!);
-        p = (p + 1) % room.players.length;
-      }
-
-      // Find Ace of Spades
-      let startingPlayer = 0;
-      for (let i = 0; i < room.players.length; i++) {
-        if (room.players[i].hand.some(c => c.suit === '♠️' && c.rank === 'A')) {
-          startingPlayer = i;
-          break;
-        }
-      }
-
-      room.status = 'playing';
-      room.currentTurnIndex = startingPlayer;
-      room.tableCards = [];
-      room.leadSuit = null;
-      room.roundWinnerId = null;
-      room.donkeyId = null;
-      room.players.forEach((player, idx) => {
-        player.isTurn = (idx === startingPlayer);
-        player.score = 0;
-        player.isOut = false;
-        // sort hand for convenience
-        player.hand.sort((a, b) => {
-          if (a.suit !== b.suit) return suits.indexOf(a.suit) - suits.indexOf(b.suit);
-          return rankValues[b.rank] - rankValues[a.rank];
-        });
-      });
-
-      io.to(roomId).emit('gameState', room);
+      startGameLogic(roomId);
     });
 
     socket.on('playCard', ({ roomId, card }: { roomId: string, card: Card }) => {
-      const room = rooms.get(roomId);
-      if (!room || room.status !== 'playing') return;
+      processPlayCard(roomId, socket.id, card, socket);
+    });
 
-      const playerIdx = room.players.findIndex(p => p.id === socket.id);
-      if (playerIdx === -1 || room.currentTurnIndex !== playerIdx) return;
+    socket.on('startAIGame', ({ name, avatar }) => {
+      const roomId = randomInt(100000, 999999).toString();
+      const room: GameState = {
+        roomId,
+        hostId: socket.id,
+        maxPlayers: 4,
+        players: [],
+        status: 'lobby',
+        tableCards: [],
+        leadSuit: null,
+        currentTurnIndex: 0,
+        roundWinnerId: null,
+        donkeyId: null
+      };
+
+      room.players.push({
+        id: socket.id,
+        name: name || `Player`,
+        avatar: avatar || `🦊`,
+        hand: [],
+        isTurn: false,
+        score: 0,
+        isOut: false,
+        order: 0
+      });
+
+      // Add 3 AI bots
+      const botNames = ['Bot Alpha', 'Bot Beta', 'Bot Gamma'];
+      const botAvatars = ['🤖', '👽', '👾'];
+      for (let i = 0; i < 3; i++) {
+        room.players.push({
+          id: `bot_${i}_${roomId}`,
+          name: botNames[i],
+          avatar: botAvatars[i],
+          isBot: true,
+          hand: [],
+          isTurn: false,
+          score: 0,
+          isOut: false,
+          order: i + 1
+        });
+      }
+
+      rooms.set(roomId, room);
+      socket.join(roomId);
       
-      const player = room.players[playerIdx];
-
-      // Validation
-      const hasSuit = player.hand.some(c => c.suit === room.leadSuit);
-      if (room.leadSuit && hasSuit && card.suit !== room.leadSuit) {
-        socket.emit('error', 'Must follow the lead suit!');
-        return;
-      }
-
-      // Remove card from hand
-      const cardIdx = player.hand.findIndex(c => c.suit === card.suit && c.rank === card.rank);
-      if (cardIdx === -1) return;
-      player.hand.splice(cardIdx, 1);
-
-      // Add to table
-      room.tableCards.push({ playerId: socket.id, card });
-
-      if (room.tableCards.length === 1) {
-        room.leadSuit = card.suit;
-      }
-
-      player.isTurn = false;
-
-      // Check if everyone active has played or if someone cuts
-      const isCut = room.leadSuit && card.suit !== room.leadSuit;
-      const activePlayers = room.players.filter(p => !p.isOut && p.hand.length > 0 || room.tableCards.some(t => t.playerId === p.id));
-      
-      if (room.tableCards.length === activePlayers.length || isCut) {
-        // Evaluate trick
-        let winningTableCard = room.tableCards[0];
-        let cutCardPlayed = false;
-
-        for (const tCard of room.tableCards) {
-          if (room.leadSuit && tCard.card.suit !== room.leadSuit) {
-             cutCardPlayed = true;
-          } else if (tCard.card.suit === room.leadSuit) {
-            if (rankValues[tCard.card.rank] > rankValues[winningTableCard.card.rank]) {
-              winningTableCard = tCard;
-            }
-          }
-        }
-
-        room.roundWinnerId = winningTableCard.playerId;
-        const winnerPlayer = room.players.find(p => p.id === winningTableCard.playerId);
-
-        // Broadcast the result before clearing the table
-        io.to(roomId).emit('gameState', room);
-
-        setTimeout(() => {
-          if (winnerPlayer) {
-             if (cutCardPlayed) {
-               // The winner picks up all cards played in the trick into their hand
-               for (const tCard of room.tableCards) {
-                 winnerPlayer.hand.push(tCard.card);
-               }
-               // Sort hand again
-               winnerPlayer.hand.sort((a, b) => {
-                 if (a.suit !== b.suit) return suits.indexOf(a.suit) - suits.indexOf(b.suit);
-                 return rankValues[b.rank] - rankValues[a.rank];
-               });
-               // Make sure they are not marked as out
-               winnerPlayer.isOut = false;
-             }
-          }
-
-          // Clear table and set next turn
-          room.tableCards = [];
-          room.leadSuit = null;
-          room.roundWinnerId = null;
-          
-          // Update who is out
-          room.players.forEach(p => {
-             if (p.hand.length === 0) p.isOut = true;
-          });
-
-          const stillPlaying = room.players.filter(p => !p.isOut);
-          
-          if (stillPlaying.length <= 1) {
-            // Game Over
-            room.status = 'finished';
-            // Determine Donkey: the last one remaining, or if none, the round winner/last player
-            room.donkeyId = stillPlaying.length === 1 ? stillPlaying[0].id : winningTableCard.playerId;
-            
-            // Calculate final scores based on remaining cards
-            room.players.forEach(p => {
-              p.score = p.hand.reduce((total, card) => total + rankPoints[card.rank], 0);
-            });
-
-            io.to(roomId).emit('gameState', room);
-            return;
-          }
-
-          // Next turn is the winner, or the next available player
-          const winnerIdx = room.players.findIndex(p => p.id === winningTableCard.playerId);
-          let nT = winnerIdx;
-          if (room.players[nT].isOut) {
-             // Find next active
-             while (room.players[nT].isOut) {
-               nT = (nT + 1) % room.players.length;
-             }
-          }
-          
-          room.currentTurnIndex = nT;
-          room.players[nT].isTurn = true;
-          
-          io.to(roomId).emit('gameState', room);
-        }, 2500);
-
-      } else {
-        // Pass turn to next active player
-        let nT = (playerIdx + 1) % room.players.length;
-        while (room.players[nT].isOut) {
-          nT = (nT + 1) % room.players.length;
-        }
-        room.currentTurnIndex = nT;
-        room.players[nT].isTurn = true;
-        io.to(roomId).emit('gameState', room);
-      }
-
+      // Auto start game
+      startGameLogic(roomId);
     });
   });
+
+  function startGameLogic(roomId: string) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    // Clear hands first
+    room.players.forEach(p => p.hand = []);
+
+    const deck = createDeck();
+    shuffle(deck);
+
+    let p = 0;
+    while (deck.length > 0) {
+      room.players[p].hand.push(deck.pop()!);
+      p = (p + 1) % room.players.length;
+    }
+
+    let startingPlayer = 0;
+    for (let i = 0; i < room.players.length; i++) {
+      if (room.players[i].hand.some(c => c.suit === '♠️' && c.rank === 'A')) {
+        startingPlayer = i;
+        break;
+      }
+    }
+
+    room.status = 'playing';
+    room.currentTurnIndex = startingPlayer;
+    room.tableCards = [];
+    room.leadSuit = null;
+    room.roundWinnerId = null;
+    room.donkeyId = null;
+    room.isEvaluating = false;
+    
+    room.players.forEach((player, idx) => {
+      player.isTurn = (idx === startingPlayer);
+      player.score = 0;
+      player.isOut = false;
+      player.hand.sort((a, b) => {
+        if (a.suit !== b.suit) return suits.indexOf(a.suit) - suits.indexOf(b.suit);
+        return rankValues[b.rank] - rankValues[a.rank];
+      });
+    });
+
+    io.to(roomId).emit('gameState', room);
+    checkBotTurn(roomId);
+  }
+
+  function processPlayCard(roomId: string, playerId: string, card: Card, socket?: any) {
+    const room = rooms.get(roomId);
+    if (!room || room.status !== 'playing' || room.isEvaluating) return;
+
+    const playerIdx = room.players.findIndex(p => p.id === playerId);
+    if (playerIdx === -1 || room.currentTurnIndex !== playerIdx) return;
+    
+    const player = room.players[playerIdx];
+
+    // Validation
+    const hasSuit = player.hand.some(c => c.suit === room.leadSuit);
+    if (room.leadSuit && hasSuit && card.suit !== room.leadSuit) {
+      if (socket) socket.emit('error', 'Must follow the lead suit!');
+      return;
+    }
+
+    // Remove card from hand
+    const cardIdx = player.hand.findIndex(c => c.suit === card.suit && c.rank === card.rank);
+    if (cardIdx === -1) return;
+    player.hand.splice(cardIdx, 1);
+
+    // Add to table
+    room.tableCards.push({ playerId, card });
+
+    if (room.tableCards.length === 1) {
+      room.leadSuit = card.suit;
+    }
+
+    player.isTurn = false;
+
+    // Check if everyone active has played or if someone cuts
+    const isCut = room.leadSuit && card.suit !== room.leadSuit;
+    const activePlayers = room.players.filter(p => (!p.isOut && p.hand.length > 0) || room.tableCards.some(t => t.playerId === p.id));
+    
+    if (room.tableCards.length === activePlayers.length || isCut) {
+      // Evaluate trick
+      let winningTableCard = room.tableCards[0];
+      let cutCardPlayed = false;
+
+      for (const tCard of room.tableCards) {
+        if (room.leadSuit && tCard.card.suit !== room.leadSuit) {
+           cutCardPlayed = true;
+        } else if (tCard.card.suit === room.leadSuit) {
+          if (rankValues[tCard.card.rank] > rankValues[winningTableCard.card.rank]) {
+            winningTableCard = tCard;
+          }
+        }
+      }
+
+      room.roundWinnerId = winningTableCard.playerId;
+      const winnerPlayer = room.players.find(p => p.id === winningTableCard.playerId);
+      
+      room.isEvaluating = true;
+
+      // Broadcast the result before clearing the table
+      io.to(roomId).emit('gameState', room);
+
+      setTimeout(() => {
+        room.isEvaluating = false;
+        
+        if (winnerPlayer) {
+           if (cutCardPlayed) {
+             for (const tCard of room.tableCards) {
+               winnerPlayer.hand.push(tCard.card);
+             }
+             winnerPlayer.hand.sort((a, b) => {
+               if (a.suit !== b.suit) return suits.indexOf(a.suit) - suits.indexOf(b.suit);
+               return rankValues[b.rank] - rankValues[a.rank];
+             });
+             winnerPlayer.isOut = false;
+           }
+        }
+
+        // Clear table and set next turn
+        room.tableCards = [];
+        room.leadSuit = null;
+        room.roundWinnerId = null;
+        
+        // Update who is out
+        room.players.forEach(p => {
+           if (p.hand.length === 0) p.isOut = true;
+        });
+
+        const stillPlaying = room.players.filter(p => !p.isOut);
+        
+        if (stillPlaying.length <= 1) {
+          room.status = 'finished';
+          room.donkeyId = stillPlaying.length === 1 ? stillPlaying[0].id : winningTableCard.playerId;
+          
+          room.players.forEach(p => {
+            p.score = p.hand.reduce((total, card) => total + rankPoints[card.rank], 0);
+          });
+
+          io.to(roomId).emit('gameState', room);
+          return;
+        }
+
+        const winnerIdx = room.players.findIndex(p => p.id === winningTableCard.playerId);
+        let nT = winnerIdx;
+        if (room.players[nT].isOut) {
+           while (room.players[nT].isOut) {
+             nT = (nT + 1) % room.players.length;
+           }
+        }
+        
+        room.currentTurnIndex = nT;
+        room.players[nT].isTurn = true;
+        
+        io.to(roomId).emit('gameState', room);
+        checkBotTurn(roomId);
+      }, 1500);
+
+    } else {
+      let nT = (playerIdx + 1) % room.players.length;
+      while (room.players[nT].isOut) {
+        nT = (nT + 1) % room.players.length;
+      }
+      room.currentTurnIndex = nT;
+      room.players[nT].isTurn = true;
+      io.to(roomId).emit('gameState', room);
+      checkBotTurn(roomId);
+    }
+  }
+
+  function checkBotTurn(roomId: string) {
+    const room = rooms.get(roomId);
+    if (!room || room.status !== 'playing' || room.isEvaluating) return;
+
+    const currentPlayer = room.players[room.currentTurnIndex];
+    if (!currentPlayer.isBot) return;
+
+    setTimeout(() => {
+      const liveRoom = rooms.get(roomId);
+      if (!liveRoom || liveRoom.status !== 'playing' || liveRoom.isEvaluating) return;
+      if (liveRoom.currentTurnIndex === undefined) return;
+      if (liveRoom.players[liveRoom.currentTurnIndex].id !== currentPlayer.id) return;
+
+      const card = chooseBotCard(liveRoom, currentPlayer);
+      if (card) {
+        processPlayCard(roomId, currentPlayer.id, card);
+      }
+    }, 1500);
+  }
+
+  function chooseBotCard(room: GameState, bot: Player): Card | null {
+    if (bot.hand.length === 0) return null;
+    
+    const hand = [...bot.hand];
+    hand.sort((a, b) => rankValues[b.rank] - rankValues[a.rank]);
+
+    if (room.leadSuit) {
+      const matching = hand.filter(c => c.suit === room.leadSuit);
+      if (matching.length > 0) {
+        // Did someone already strike?
+        const hasStrike = room.tableCards.some(tc => tc.card.suit !== room.leadSuit);
+        if (hasStrike) {
+          // Play lowest matching card to avoid winning the trick and collecting the strike pile
+          return matching[matching.length - 1];
+        } else {
+          // Play highest matching card to get rid of it safely
+          return matching[0];
+        }
+      }
+      // Strike: No matching suit. Play highest card overall to get rid of it.
+      return hand[0];
+    } else {
+      // Lead: Play highest overall card to reduce future risk.
+      return hand[0];
+    }
+  }
 
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import('vite');
