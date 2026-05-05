@@ -140,6 +140,7 @@ export function GameUI({ socket, gameState }: GameUIProps) {
                                       const globalIndex = i * gameState.players.length + originalPlayerIndex;
                                       return (
                                         <motion.div
+                                            layout
                                             key={i}
                                             initial={isDealing ? { opacity: 0, scale: 0, y: 300 } : false}
                                             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -196,9 +197,9 @@ export function GameUI({ socket, gameState }: GameUIProps) {
                                 opacity: 1,
                                 y: 0,
                                 rotate: isWinner ? 0 : index * 15 - 30,
-                                zIndex: isWinner ? 50 : 10,
                                 filter: isWinner ? 'drop-shadow(0 0 20px rgba(16, 185, 129, 0.8))' : 'drop-shadow(0 0 5px rgba(0,0,0,0.5))'
                             }}
+                            style={{ zIndex: isWinner ? 50 : index + 10 }}
                             exit={{ 
                                 opacity: 0, 
                                 scale: 0.5, 
@@ -244,6 +245,7 @@ export function GameUI({ socket, gameState }: GameUIProps) {
                         
                         return (
                             <motion.div
+                                layout
                                 layoutId={`card-${card.suit}-${card.rank}`}
                                 key={`${card.suit}-${card.rank}`}
                                 drag={canPlay}
