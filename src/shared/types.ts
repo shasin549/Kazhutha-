@@ -16,6 +16,7 @@ export interface Player {
   score: number;
   isOut: boolean;
   order: number;
+  placement?: number;
 }
 
 export interface TableCard {
@@ -36,4 +37,6 @@ export interface GameState {
   leadSuit: Suit | null;
   roundWinnerId: string | null;
   donkeyId: string | null;
+  knownVoids?: Record<string, Suit[]>;
+  nextPlacement?: number;
 }

@@ -26,10 +26,9 @@ export function Lobby({ socket, gameState }: LobbyProps) {
     if (room) {
       setRoomInput(room.toUpperCase().trim());
       setTab('join');
-      setMode('multiplayer');
-      // If we have a room name in the state, we could show it, but we don't yet.
+      // Keep mode as 'menu' so they must enter their name first
     }
-  }, [window.location.search]);
+  }, []);
 
   useEffect(() => {
     if (!socket) return;
@@ -85,9 +84,9 @@ export function Lobby({ socket, gameState }: LobbyProps) {
 
   if (!gameState) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 bg-[#0d1615] rounded-3xl border border-white/5 shadow-2xl w-full max-w-md mx-auto relative overflow-hidden backdrop-blur-xl">
-        <div className="absolute -top-32 -right-32 w-64 h-64 bg-emerald-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-teal-500/20 rounded-full blur-3xl"></div>
+      <div className="flex flex-col items-center justify-center p-8 bg-[#2a1104] rounded-3xl border border-white/5 shadow-2xl w-full max-w-md mx-auto relative overflow-hidden backdrop-blur-xl">
+        <div className="absolute -top-32 -right-32 w-64 h-64 bg-orange-500/20 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-amber-500/20 rounded-full blur-3xl"></div>
         
         <h1 className="text-5xl font-serif text-white tracking-widest text-center shadow-black/50 z-10 mb-2">
           കഴുതകളി
@@ -121,7 +120,7 @@ export function Lobby({ socket, gameState }: LobbyProps) {
                       <button
                         key={emoji}
                         onClick={() => setAvatar(emoji)}
-                        className={`w-10 h-10 rounded-full text-xl flex items-center justify-center transition-all ${avatar === emoji ? 'bg-emerald-500 scale-110 shadow-lg shadow-emerald-500/50' : 'bg-white/10 hover:bg-white/20 hover:scale-105'}`}
+                        className={`w-10 h-10 rounded-full text-xl flex items-center justify-center transition-all ${avatar === emoji ? 'bg-orange-500 scale-110 shadow-lg shadow-orange-500/50' : 'bg-white/10 hover:bg-white/20 hover:scale-105'}`}
                       >
                         {emoji}
                       </button>
@@ -130,8 +129,8 @@ export function Lobby({ socket, gameState }: LobbyProps) {
                 </div>
 
                 <input
-                  className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 outline-none focus:border-emerald-500/50 transition-colors placeholder:text-white/30 font-medium"
-                  placeholder="Your Name (Optional)"
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 outline-none focus:border-orange-500/50 transition-colors placeholder:text-white/30 font-medium"
+                  placeholder="Your Name"
                   value={nameInput}
                   onChange={e => setNameInput(e.target.value.substring(0, 12))}
                 />
@@ -139,13 +138,15 @@ export function Lobby({ socket, gameState }: LobbyProps) {
                 <div className="flex flex-col gap-3 pt-2">
                   <button
                     onClick={handlePlayAI}
-                    className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold tracking-widest text-sm uppercase py-4 rounded-xl transition-all active:scale-95 shadow-lg shadow-emerald-900/50"
+                    disabled={!nameInput.trim()}
+                    className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold tracking-widest text-sm uppercase py-4 rounded-xl transition-all active:scale-95 shadow-lg shadow-orange-900/50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     Play with AI 🤖
                   </button>
                   <button
                     onClick={() => setMode('multiplayer')}
-                    className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/10 font-bold tracking-widest text-sm uppercase py-4 rounded-xl transition-all active:scale-95"
+                    disabled={!nameInput.trim()}
+                    className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/10 font-bold tracking-widest text-sm uppercase py-4 rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     Play with Friends 👥
                   </button>
@@ -173,13 +174,13 @@ export function Lobby({ socket, gameState }: LobbyProps) {
                 <div className="flex w-full bg-black/40 rounded-xl p-1 z-10 border border-white/5">
                   <button
                     onClick={() => setTab('join')}
-                    className={`flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${tab === 'join' ? 'bg-emerald-600 text-white shadow-lg' : 'text-white/50 hover:text-white'}`}
+                    className={`flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${tab === 'join' ? 'bg-orange-600 text-white shadow-lg' : 'text-white/50 hover:text-white'}`}
                   >
                     Join
                   </button>
                   <button
                     onClick={() => setTab('create')}
-                    className={`flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${tab === 'create' ? 'bg-emerald-600 text-white shadow-lg' : 'text-white/50 hover:text-white'}`}
+                    className={`flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${tab === 'create' ? 'bg-orange-600 text-white shadow-lg' : 'text-white/50 hover:text-white'}`}
                   >
                     Create
                   </button>
@@ -196,12 +197,12 @@ export function Lobby({ socket, gameState }: LobbyProps) {
                         className="space-y-4"
                       >
                         {roomInput && new URLSearchParams(window.location.search).get('room') && (
-                          <div className="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl mb-2">
-                            <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest text-center">Joining via invite link</p>
+                          <div className="bg-orange-500/10 border border-orange-500/30 p-3 rounded-xl mb-2">
+                            <p className="text-[10px] text-orange-400 font-bold uppercase tracking-widest text-center">Joining via invite link</p>
                           </div>
                         )}
                         <input
-                          className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 outline-none focus:border-emerald-500/50 transition-colors uppercase placeholder:text-white/30 font-mono tracking-widest"
+                          className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 outline-none focus:border-orange-500/50 transition-colors uppercase placeholder:text-white/30 font-mono tracking-widest"
                           placeholder="Room Code"
                           value={roomInput}
                           onChange={e => setRoomInput(e.target.value.toUpperCase().replace(/\s/g, ''))}
@@ -209,7 +210,7 @@ export function Lobby({ socket, gameState }: LobbyProps) {
                         <button
                           onClick={handleJoin}
                           disabled={!roomInput}
-                          className="mt-2 w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-white/10 text-white font-bold tracking-widest text-sm uppercase py-4 rounded-xl transition-all active:scale-95 shadow-lg shadow-emerald-900/50 disabled:shadow-none disabled:text-white/20"
+                          className="mt-2 w-full bg-orange-600 hover:bg-orange-500 disabled:bg-white/10 text-white font-bold tracking-widest text-sm uppercase py-4 rounded-xl transition-all active:scale-95 shadow-lg shadow-orange-900/50 disabled:shadow-none disabled:text-white/20"
                         >
                           Join Room
                         </button>
@@ -223,13 +224,13 @@ export function Lobby({ socket, gameState }: LobbyProps) {
                         className="space-y-4"
                       >
                         <input
-                          className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 outline-none focus:border-emerald-500/50 transition-colors placeholder:text-white/30 font-medium"
+                          className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 outline-none focus:border-orange-500/50 transition-colors placeholder:text-white/30 font-medium"
                           placeholder="Room Name"
                           value={roomNameInput}
                           onChange={e => setRoomNameInput(e.target.value.substring(0, 20))}
                         />
                         <select
-                          className="w-full bg-black/40 border border-white/10 text-white rounded-xl px-4 py-3 outline-none focus:border-emerald-500/50 appearance-none cursor-pointer"
+                          className="w-full bg-black/40 border border-white/10 text-white rounded-xl px-4 py-3 outline-none focus:border-orange-500/50 appearance-none cursor-pointer"
                           value={maxPlayersInput}
                           onChange={e => setMaxPlayersInput(e.target.value)}
                         >
@@ -242,7 +243,7 @@ export function Lobby({ socket, gameState }: LobbyProps) {
                         <button
                           onClick={handleCreate}
                           disabled={!roomNameInput}
-                          className="mt-2 w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-white/5 text-white font-bold tracking-widest text-sm uppercase py-4 rounded-xl transition-all active:scale-95 shadow-lg shadow-emerald-900/50 disabled:shadow-none disabled:text-white/30"
+                          className="mt-2 w-full bg-orange-600 hover:bg-orange-500 disabled:bg-white/5 text-white font-bold tracking-widest text-sm uppercase py-4 rounded-xl transition-all active:scale-95 shadow-lg shadow-orange-900/50 disabled:shadow-none disabled:text-white/30"
                         >
                           Create Room
                         </button>
@@ -305,21 +306,21 @@ export function Lobby({ socket, gameState }: LobbyProps) {
   };
 
   return (
-    <div className="flex flex-col items-center p-8 md:p-12 bg-[#0d1615] rounded-3xl border border-white/5 shadow-2xl w-full max-w-md mx-auto relative overflow-hidden backdrop-blur-xl">
-      <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/20 via-[#0d1615]/0 to-transparent"></div>
+    <div className="flex flex-col items-center p-8 md:p-12 bg-[#2a1104] rounded-3xl border border-white/5 shadow-2xl w-full max-w-md mx-auto relative overflow-hidden backdrop-blur-xl">
+      <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-900/20 via-[#2a1104]/0 to-transparent"></div>
       
       <div className="z-10 w-full text-center mb-6 relative">
         <h1 className="text-2xl font-serif text-white tracking-widest mb-4">
           {gameState.roomName || 'കഴുതകളി Room'}
         </h1>
         <h2 className="text-white/50 text-xs font-mono uppercase tracking-widest mb-1">Room Code</h2>
-        <div className="text-4xl font-mono text-emerald-400 font-bold tracking-widest bg-emerald-400/10 inline-block px-6 py-2 rounded-lg border border-emerald-400/20 mb-4">
+        <div className="text-4xl font-mono text-orange-400 font-bold tracking-widest bg-orange-400/10 inline-block px-6 py-2 rounded-lg border border-orange-400/20 mb-4">
           {gameState.roomId}
         </div>
         
         <button 
           onClick={handleNativeShare}
-          className="flex items-center justify-center space-x-2 w-full bg-emerald-600 hover:bg-emerald-500 border border-emerald-400/30 text-white py-3 rounded-lg transition-all active:scale-95 text-sm font-bold uppercase tracking-widest shadow-lg shadow-emerald-900/40"
+          className="flex items-center justify-center space-x-2 w-full bg-orange-600 hover:bg-orange-500 border border-orange-400/30 text-white py-3 rounded-lg transition-all active:scale-95 text-sm font-bold uppercase tracking-widest shadow-lg shadow-orange-900/40"
         >
           {copied ? <Check size={18} /> : <Copy size={18} />}
           <span>{copied ? 'Link Copied!' : 'Invite Friends'}</span>
@@ -331,8 +332,8 @@ export function Lobby({ socket, gameState }: LobbyProps) {
            </p>
            <p className="text-[10px] text-white/80 leading-relaxed">
              1. Click the <span className="text-white font-bold underline">"Share"</span> button in the top right of <span className="italic">AI Studio</span>.<br/>
-             2. Set visibility to <span className="text-emerald-400 font-bold">"Anyone with the link"</span>.<br/>
-             3. <span className="text-emerald-400 font-bold">Only then</span> will this link work for your friends. Otherwise, they will see a <span className="text-red-400">404/403 Error</span>.
+             2. Set visibility to <span className="text-orange-400 font-bold">"Anyone with the link"</span>.<br/>
+             3. <span className="text-orange-400 font-bold">Only then</span> will this link work for your friends. Otherwise, they will see a <span className="text-red-400">404/403 Error</span>.
            </p>
         </div>
       </div>
@@ -354,7 +355,7 @@ export function Lobby({ socket, gameState }: LobbyProps) {
               <span className="text-white font-medium">{p.name}</span>
             </div>
             {p.id === gameState.hostId && (
-              <span className="text-emerald-400 text-xs uppercase tracking-wider font-bold">Host</span>
+              <span className="text-orange-400 text-xs uppercase tracking-wider font-bold">Host</span>
             )}
           </motion.div>
         ))}
@@ -364,7 +365,7 @@ export function Lobby({ socket, gameState }: LobbyProps) {
         <button
           onClick={handleStart}
           disabled={gameState.players.length < 2}
-          className="mt-8 z-10 w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-white/5 disabled:text-white/30 text-white font-bold tracking-wider py-4 rounded-xl transition-all active:scale-95 uppercase shadow-xl shadow-emerald-900/50"
+          className="mt-8 z-10 w-full bg-orange-600 hover:bg-orange-500 disabled:bg-white/5 disabled:text-white/30 text-white font-bold tracking-wider py-4 rounded-xl transition-all active:scale-95 uppercase shadow-xl shadow-orange-900/50"
         >
           {gameState.players.length < 2 ? 'Waiting for players...' : 'Deal Cards'}
         </button>

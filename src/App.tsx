@@ -32,6 +32,10 @@ function App() {
       setGameState(state);
     });
 
+    newSocket.on('clearState', () => {
+      setGameState(null);
+    });
+
     return () => {
       newSocket.close();
     };
@@ -41,7 +45,7 @@ function App() {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center font-mono">
         <div className="flex flex-col items-center space-y-4">
-            <div className="w-8 h-8 rounded-full border-t-2 border-emerald-500 animate-spin"></div>
+            <div className="w-8 h-8 rounded-full border-t-2 border-orange-500 animate-spin"></div>
             <p className="tracking-widest uppercase text-xs text-white/50">Establishing Secure Connection</p>
         </div>
       </div>
