@@ -1,0 +1,6 @@
+{
+  "name": "കഴുതകളി Card Game",
+  "description": "A real-time multiplayer card game called കഴുതകളി using React, Express, and Socket.io. Includes real-time text chat.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
