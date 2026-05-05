@@ -17,6 +17,7 @@ export function Lobby({ socket, gameState }: LobbyProps) {
   const [maxPlayersInput, setMaxPlayersInput] = useState('4');
   const [errorMsg, setErrorMsg] = useState('');
   const [copied, setCopied] = useState(false);
+  const [avatar, setAvatar] = useState('🦊');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -41,12 +42,12 @@ export function Lobby({ socket, gameState }: LobbyProps) {
   const handleCreate = () => {
     if (!roomNameInput || !nameInput || !socket) return;
     const generatedRoomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    socket.emit('createRoom', { roomId: generatedRoomCode, roomName: roomNameInput, name: nameInput, maxPlayers: maxPlayersInput });
+    socket.emit('createRoom', { roomId: generatedRoomCode, roomName: roomNameInput, name: nameInput, maxPlayers: maxPlayersInput, avatar });
   };
 
   const handleJoin = () => {
     if (!roomInput || !nameInput || !socket) return;
-    socket.emit('joinRoom', { roomId: roomInput, name: nameInput });
+    socket.emit('joinRoom', { roomId: roomInput, name: nameInput, avatar });
   };
 
   const handleStart = async () => {
@@ -101,6 +102,21 @@ export function Lobby({ socket, gameState }: LobbyProps) {
           >
             Create
           </button>
+        </div>
+
+        <div className="w-full mb-6">
+          <p className="text-white/40 text-xs font-bold uppercase tracking-widest mb-2 text-center">Choose Avatar</p>
+          <div className="flex justify-center gap-2 flex-wrap">
+            {['🦊', '🐰', '🐱', '🐶', '🐻', '🐼', '🐯', '🦁', '🐸', '🐵', '🦄', '🐷'].map(emoji => (
+              <button
+                key={emoji}
+                onClick={() => setAvatar(emoji)}
+                className={`w-10 h-10 rounded-full text-xl flex items-center justify-center transition-all ${avatar === emoji ? 'bg-emerald-500 scale-110 shadow-lg shadow-emerald-500/50' : 'bg-white/10 hover:bg-white/20 hover:scale-105'}`}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="w-full relative z-10 overflow-hidden min-h-[220px]">
@@ -274,8 +290,8 @@ export function Lobby({ socket, gameState }: LobbyProps) {
             className="flex items-center justify-between bg-white/5 px-4 py-3 rounded-lg border border-white/5"
           >
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-sm">
-                {p.name.charAt(0)}
+              <div className="w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-xl shadow-inner">
+                {p.avatar || '🦊'}
               </div>
               <span className="text-white font-medium">{p.name}</span>
             </div>

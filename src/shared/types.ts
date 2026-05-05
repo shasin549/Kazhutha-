@@ -9,6 +9,7 @@ export interface Card {
 export interface Player {
   id: string; // socket.id
   name: string;
+  avatar: string;
   hand: Card[];
   isTurn: boolean;
   score: number;

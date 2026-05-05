@@ -61,7 +61,7 @@ async function startServer() {
   io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
-    socket.on('createRoom', ({ roomId, roomName, name, maxPlayers }) => {
+    socket.on('createRoom', ({ roomId, roomName, name, avatar, maxPlayers }) => {
       if (rooms.has(roomId)) {
         socket.emit('error', 'Room code already in use!');
         return;
@@ -93,6 +93,7 @@ async function startServer() {
       room.players.push({
         id: socket.id,
         name: name || `Player 1`,
+        avatar: avatar || `1`,
         hand: [],
         isTurn: false,
         score: 0,
@@ -103,7 +104,7 @@ async function startServer() {
       io.to(roomId).emit('gameState', room);
     });
 
-    socket.on('joinRoom', ({ roomId, name }) => {
+    socket.on('joinRoom', ({ roomId, name, avatar }) => {
       if (!rooms.has(roomId)) {
         socket.emit('error', 'Room not found!');
         return;
@@ -125,6 +126,7 @@ async function startServer() {
         room.players.push({
           id: socket.id,
           name: name || `Player ${room.players.length + 1}`,
+          avatar: avatar || `1`,
           hand: [],
           isTurn: false,
           score: 0,

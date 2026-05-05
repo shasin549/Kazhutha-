@@ -132,7 +132,8 @@ export function GameUI({ socket, gameState }: GameUIProps) {
                   {(me ? orderedPlayers.slice(1) : orderedPlayers).map((p) => (
                       <div key={p.id} className="flex flex-col items-center">
                           <div className={`relative px-4 py-2 rounded-xl border ${p.isTurn ? 'bg-emerald-600/20 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-white/5 border-white/10'} backdrop-blur-sm transition-all text-center min-w-[100px]`}>
-                              {p.isOut && <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center z-20 font-bold uppercase tracking-widest text-xs text-rose-400">OUT</div>}
+                                  {p.isOut && <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center z-20 font-bold uppercase tracking-widest text-xs text-rose-400">OUT</div>}
+                              <div className="text-2xl mb-1 drop-shadow-md">{p.avatar || '🦊'}</div>
                               <h3 className="font-bold text-sm tracking-widest">{p.name}</h3>
                               <div className="flex -space-x-4 mt-2 justify-center">
                                   {p.hand.map((_, i) => {
@@ -220,6 +221,12 @@ export function GameUI({ socket, gameState }: GameUIProps) {
       {/* My Hand */}
       {me && (
         <div className="w-full flex justify-center items-end p-8 pb-12 z-20 relative">
+            <div className="absolute bottom-4 left-4 sm:bottom-8 sm:left-8 flex flex-col items-center bg-black/40 border border-white/10 p-3 rounded-2xl backdrop-blur-md">
+                <div className="text-3xl drop-shadow-md mb-1">{me.avatar || '🦊'}</div>
+                <div className="text-white font-bold text-xs uppercase tracking-widest">{me.name}</div>
+                <div className="text-emerald-400 font-mono text-[10px] mt-1">{me.score} pts</div>
+            </div>
+            
             {me.isTurn && !me.isOut && (
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full mb-8">
                     <span className="bg-emerald-500 text-black font-black uppercase tracking-widest text-xs px-6 py-2 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.5)] animate-pulse border border-emerald-300">
